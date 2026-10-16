@@ -1,68 +1,101 @@
+
 pipeline {
-  agent {
-    docker {
-      image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
+    agent any
+
+    environment {
+        DOCKER_IMAGE = 'horlacloud/spring-boot-demo'
+        SOURCE_DIR = 'spring-boot-app'
+        GITOPS_REPO = 'https://github.com/Jahmeeu-Cloud/platform-cicd-gitops-config.git'
     }
-  }
-  stages {
-    stage('Checkout') {
-      steps {
-        sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/iam-veeramalla/Jenkins-Zero-To-Hero.git'
-      }
-    }
-    stage('Build and Test') {
-      steps {
-        sh 'ls -ltr'
-        // build the project and create a JAR file
-        sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
-      }
-    }
-    stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://34.201.116.83:9000"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-        }
-      }
-    }
-    stage('Build and Push Docker Image') {
-      environment {
-        DOCKER_IMAGE = "abhishekf5/ultimate-cicd:${BUILD_NUMBER}"
-        // DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
-        REGISTRY_CREDENTIALS = credentials('docker-cred')
-      }
-      steps {
-        script {
-            sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-            def dockerImage = docker.image("${DOCKER_IMAGE}")
-            docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-                dockerImage.push()
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Source repository checked out by Jenkins.'
+                sh 'pwd && ls -la'
             }
         }
-      }
-    }
-    stage('Update Deployment File') {
-        environment {
-            GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
-            GIT_USER_NAME = "iam-veeramalla"
+
+        stage('Build and Test') {
+            steps {
+                dir('spring-boot-app') {
+                    sh 'java -version'
+                    sh 'mvn -version'
+                    sh 'mvn clean package'
+                }
+            }
         }
-        steps {
-            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                sh '''
-                    git config user.email "abhishek.xyz@gmail.com"
-                    git config user.name "Abhishek Veeramalla"
-                    BUILD_NUMBER=${BUILD_NUMBER}
-                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                    git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-                '''
+
+        stage('Build and Push Docker Image') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        echo "$DOCKERHUB_PASSWORD" |
+                            docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                    '''
+
+                    dir('spring-boot-app') {
+                        sh '''
+                            set -eu
+                            docker build \
+                              -t "$DOCKER_IMAGE:$BUILD_NUMBER" .
+                            docker push "$DOCKER_IMAGE:$BUILD_NUMBER"
+                        '''
+                    }
+
+                    sh 'docker logout'
+                }
+            }
+        }
+
+        stage('Update GitOps Repository') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'github-credentials',
+                        usernameVariable: 'GITHUB_USERNAME',
+                        passwordVariable: 'GITHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+
+                        git clone "$GITOPS_REPO" gitops
+
+                        cd gitops
+
+                        git config user.name "Jahmeeu-Cloud"
+                        git config user.email "jamiu@example.com"
+
+                        sed -i -E \
+                          "s|(image: horlacloud/spring-boot-demo:).*|\\1${BUILD_NUMBER}|" \
+                          apps/spring-boot-app/base/deployment.yaml
+
+                        git add apps/spring-boot-app/base/deployment.yaml
+
+                        if git diff --cached --quiet; then
+                            echo "No GitOps changes to commit."
+                            exit 0
+                        fi
+
+                        git commit -m "Update Spring Boot image to ${BUILD_NUMBER}"
+
+                        AUTH=$(printf '%s:%s' \
+                          "$GITHUB_USERNAME" "$GITHUB_TOKEN" |
+                          base64 -w0)
+
+                        git -c http.extraheader="AUTHORIZATION: basic $AUTH" \
+                          push origin HEAD:main
+                    '''
+                }
             }
         }
     }
-  }
 }
