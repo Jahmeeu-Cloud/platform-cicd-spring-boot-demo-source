@@ -67,6 +67,8 @@ pipeline {
                     sh '''
                         set -eu
 
+                        rm -rf gitops
+
                         git clone "$GITOPS_REPO" gitops
 
                         cd gitops
