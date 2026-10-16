@@ -89,12 +89,9 @@ pipeline {
 
                         git commit -m "Update Spring Boot image to ${BUILD_NUMBER}"
 
-                        AUTH=$(printf '%s:%s' \
-                          "$GITHUB_USERNAME" "$GITHUB_TOKEN" |
-                          base64 -w0)
-
-                        git -c http.extraheader="AUTHORIZATION: basic $AUTH" \
-                          push origin HEAD:main
+                        git -c http.extraheader="AUTHORIZATION: basic $(printf '%s:%s' "$GITHUB_USERNAME" "$GITHUB_TOKEN" | base64 -w0)" \
+                          -c credential.interactive=never \
+                          push https://github.com/Jahmeeu-Cloud/platform-cicd-gitops-config.git HEAD:main
                     '''
                 }
             }
