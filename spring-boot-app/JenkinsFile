@@ -72,7 +72,7 @@ pipeline {
                         cd gitops
 
                         git config user.name "Jahmeeu-Cloud"
-                        git config user.email "jamiu@example.com"
+                        git config user.email "jamiu.o.bakre@gmail.com"
 
                         sed -i -E \
                           "s|(image: horlacloud/spring-boot-demo:).*|\\1${BUILD_NUMBER}|" \
