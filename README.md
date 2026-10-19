@@ -1,4 +1,4 @@
-## Building a CI/CD and GitOps Platform with Jenkins, Docker, Kubernetes and Argo CD: My End-to-End Capstone Project
+## Building a CI/CD and GitOps Platform with Jenkins, Docker, Kubernetes and Argo CD
 
 **From Jenkins credential errors to a working pipeline, Kubernetes deployment, and automated GitOps reconciliation**
 
