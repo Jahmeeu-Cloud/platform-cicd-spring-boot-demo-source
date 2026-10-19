@@ -1,11 +1,11 @@
-## Building a CI/CD and GitOps Platform with Jenkins, Docker, Kubernetes and Argo CD
+## Building a CI/CD and GitOps Platform with Jenkins, Docker, Kubernetes and ArgoCD
 
 **From Jenkins credential errors to a working pipeline, Kubernetes deployment, and automated GitOps reconciliation**
 
 **Author:** Jamiu Olatunji Bakre  
 **Role:** Cloud, DevOps and Platform Engineer
 
-**Tags:** DevOps, Platform Engineering, Jenkins, CI/CD, Docker, Kubernetes, GitOps, Argo CD, Maven, Kustomize, Minikube
+**Tags:** DevOps, Platform Engineering, Jenkins, CI/CD, Docker, Kubernetes, GitOps, ArgoCD, Maven, Kustomize, Minikube
 
 ---
 
@@ -17,7 +17,7 @@ My goal was to understand how application code moves from a GitHub repository th
 
 I wanted to go beyond simply installing tools and following commands from a tutorial. I wanted to understand how the components communicate, where configuration belongs, how credentials are handled, how deployment problems are investigated, and how to verify that an application is actually working.
 
-The journey included configuring Jenkins, working with GitHub repositories, building a Spring Boot application with Maven, packaging the application with Docker, and using Kubernetes and Argo CD to manage the deployment.
+The journey included configuring Jenkins, working with GitHub repositories, building a Spring Boot application with Maven, packaging the application with Docker, and using Kubernetes and ArgoCD to manage the deployment.
 
 One of the most memorable challenges was a Jenkins credential error that took considerable troubleshooting. The pipeline reported that it could not find a credential with the ID `github-credentials`. After working through the integration issues, I achieved a successful pipeline build on my 20th CI/CD pipeline build.
 
@@ -48,7 +48,7 @@ The project was designed around the following objectives:
 4. Publish container images to Docker Hub.
 5. Define Kubernetes resources declaratively.
 6. Separate application source code from deployment configuration.
-7. Use Argo CD to monitor the GitOps repository.
+7. Use ArgoCD to monitor the GitOps repository.
 8. Test automated reconciliation when the live cluster configuration differs from Git.
 9. Verify the deployed application's availability through Kubernetes and an HTTP request.
 10. Develop a repeatable troubleshooting and documentation process.
@@ -59,7 +59,7 @@ The wider objective was to understand how these capabilities fit together as a s
 
 The architecture separates the application build process from the deployment reconciliation process.
 
-Jenkins runs on an AWS EC2 instance. The Kubernetes application and Argo CD run in a local Minikube environment.
+Jenkins runs on an AWS EC2 instance. The Kubernetes application and ArgoCD run in a local Minikube environment.
 
 This separation is important because a Jenkins server on EC2 cannot automatically reach a Kubernetes cluster running on a developer's local computer. The two environments have different network boundaries.
 
@@ -89,7 +89,7 @@ This separation is important because a Jenkins server on EC2 cannot automaticall
                           GitOps Repository
                                     |
                                     v
-                             Argo CD
+                                ArgoCD
                                     |
                                     v
                            Local Minikube
@@ -115,7 +115,7 @@ The diagram describes the intended delivery flow. The exact automation depends o
 | Docker Hub | Stores and distributes container images |
 | Kubernetes | Schedules and manages application Pods |
 | Minikube | Provides a local Kubernetes environment |
-| Argo CD | Reconciles Kubernetes resources with Git-defined desired state |
+| ArgoCD | Reconciles Kubernetes resources with Git-defined desired state |
 | Kustomize | Organises and renders Kubernetes configuration |
 | SonarQube | Optional code-quality analysis when configured in the pipeline |
 
@@ -205,7 +205,7 @@ It also creates a clear path for future environment promotion:
 - Jenkins validates and packages the code.
 - A versioned image is published.
 - The deployment configuration references that image.
-- Argo CD reconciles the cluster with the approved configuration.
+- ArgoCD reconciles the cluster with the approved configuration.
 
 In a larger platform, the same approach can support separate development, staging, and production configurations.
 
@@ -233,7 +233,7 @@ In this project:
 
 - Jenkins ran on AWS EC2.
 - The Kubernetes cluster ran locally through Minikube.
-- Argo CD ran inside the Minikube cluster.
+- ArgoCD ran inside the Minikube cluster.
 - The application image was stored in Docker Hub.
 - GitHub stored both the source code and the deployment configuration.
 
@@ -241,7 +241,7 @@ This topology has an important implication: Jenkins does not automatically have 
 
 A common mistake is to install `kubectl` on a remote Jenkins server and assume that this gives it access to a local cluster. It does not. The CLI needs a valid cluster endpoint, credentials, and network connectivity.
 
-In a GitOps architecture, Jenkins can publish the image and update the deployment configuration in Git, while Argo CD performs the cluster-side reconciliation.
+In a GitOps architecture, Jenkins can publish the image and update the deployment configuration in Git, while ArgoCD performs the cluster-side reconciliation.
 
 This avoids requiring the Jenkins server to connect directly to the local cluster.
 
@@ -426,11 +426,11 @@ If Jenkins is expected to update this value automatically, the Jenkinsfile needs
 Publishing an image does not automatically update Kubernetes unless the delivery design includes an image-update mechanism or a corresponding configuration change.
 
 
-### Stage 7: Argo CD reconciliation
+### Stage 7: ArgoCD reconciliation
 
-Argo CD monitors the configured Git repository and path.
+ArgoCD monitors the configured Git repository and path.
 
-When a new desired configuration is committed, Argo CD can detect the difference and synchronise the managed Kubernetes resources according to its application configuration.
+When a new desired configuration is committed, ArgoCD can detect the difference and synchronise the managed Kubernetes resources according to its application configuration.
 
 This is the GitOps part of the workflow.
 
@@ -1214,11 +1214,11 @@ For a learning environment, a database could use a PVC for its data directory. I
 
 The application should also handle database startup and temporary connectivity failures without entering an uncontrolled restart loop.
 
-## 13. GitOps with Argo CD
+## 13. GitOps with ArgoCD
 
 GitOps is the practice of using a version-controlled repository to declare the desired state of an environment and a controller to reconcile the actual environment with that desired state.
 
-In this project, Argo CD monitored:
+In this project, ArgoCD monitored:
 
 ```text
 Repository:
@@ -1233,7 +1233,7 @@ main
 
 The application was configured to deploy into the Kubernetes `default` namespace.
 
-### 13.1 Inspect the Argo CD application
+### 13.1 Inspect the ArgoCD application
 
 ```bash
 kubectl get applications -n argocd
@@ -1242,9 +1242,9 @@ kubectl get application spring-boot-app -n argocd
 
 The expected successful state was `Synced` and `Healthy`.
 
-`Synced` indicates that the managed resources match the desired configuration according to Argo CD's comparison.
+`Synced` indicates that the managed resources match the desired configuration according to ArgoCD's comparison.
 
-`Healthy` indicates that Argo CD considers the resources healthy under its health assessment rules.
+`Healthy` indicates that ArgoCD considers the resources healthy under its health assessment rules.
 
 
 ![Image description](https://dev-to-uploads.s3.us-east-2.amazonaws.com/uploads/articles/815u0ej04oc9yrumzb0b.png)
@@ -1253,7 +1253,7 @@ The expected successful state was `Synced` and `Healthy`.
 
 Neither status guarantees that every business function works correctly. An HTTP request and application-specific tests provide additional evidence.
 
-### 13.2 Example Argo CD Application manifest
+### 13.2 Example ArgoCD Application manifest
 
 The following is an illustrative manifest for the repository and path used in this project:
 
@@ -1323,13 +1323,13 @@ The aim is to confirm that the Git-defined desired state has been applied and th
 ![Image description](https://dev-to-uploads.s3.us-east-2.amazonaws.com/uploads/articles/m6avibmb3lt5l8crm28t.png)
 
 
-**[SCREENSHOT - ARGO CD APPLICATION STATUS HERE]**
+**[SCREENSHOT - ARGOCD APPLICATION STATUS HERE]**
 
-*Suggested caption: Argo CD was tracking the GitOps repository and reporting the synchronisation and health of the application.*
+*Suggested caption: ArgoCD was tracking the GitOps repository and reporting the synchronisation and health of the application.*
 
 ## 14. Testing GitOps Self-Healing
 
-The most useful test in this project was deliberately changing the live Deployment and observing how Argo CD responded.
+The most useful test in this project was deliberately changing the live Deployment and observing how ArgoCD responded.
 
 The GitOps configuration declared three replicas.
 
@@ -1345,7 +1345,7 @@ Then I watched the Deployment:
 kubectl get deployment spring-boot-app --watch
 ```
 
-Because the ArgoCD application was configured for automated synchronisation and self-healing, Argo CD detected the difference between the live configuration and the desired state in Git.
+Because the ArgoCD application was configured for automated synchronisation and self-healing, ArgoCD detected the difference between the live configuration and the desired state in Git.
 
 The replica count returned to three.
 
@@ -1358,7 +1358,7 @@ The process was:
 1. Git declared three replicas.
 2. The live Deployment was manually scaled down to one.
 3. The live state no longer matched the desired state.
-4. Argo CD detected the difference.
+4. ArgoCD detected the difference.
 5. Automated reconciliation restored the declared replica count.
 6. Kubernetes worked towards the desired three-replica state.
 
@@ -1370,7 +1370,7 @@ It also shows why manual changes to GitOps-managed resources may be temporary. I
 
 No.
 
-Argo CD can reconcile managed resources with the desired configuration, but it cannot automatically solve every application bug, exhausted storage volume, invalid image, external database outage, or cluster networking problem.
+ArgoCD can reconcile managed resources with the desired configuration, but it cannot automatically solve every application bug, exhausted storage volume, invalid image, external database outage, or cluster networking problem.
 
 Self-healing is a reconciliation capability, not a replacement for monitoring, testing, and operational troubleshooting.
 
@@ -1381,7 +1381,7 @@ Self-healing is a reconciliation capability, not a replacement for monitoring, t
 
 **[SCREENSHOT - THE DEPLOYMENT AT ONE REPLICA HERE AND THE DEPLOYMENT RESTORED TO THREE REPLICAS HERE]**
 
-*Suggested caption: I deliberately changed the live replica count and observed Argo CD restore the desired state defined in Git.*
+*Suggested caption: I deliberately changed the live replica count and observed ArgoCD restore the desired state defined in Git.*
 
 ## 15. Verifying the Application End to End
 
@@ -1632,7 +1632,7 @@ kubectl get pv
 Possible causes include an unavailable provisioner, no matching volume, an unsupported access mode, or insufficient capacity.
 
 
-### Argo CD reports OutOfSync
+### ArgoCD reports OutOfSync
 
 Inspect the application status and compare the live state with Git.
 
@@ -1645,7 +1645,7 @@ Check whether:
 - Automatic synchronisation is configured.
 - The controller can access the repository.
 
-If manual changes keep being reverted, check whether self-healing is enabled and whether the resource is managed by the Argo CD application.
+If manual changes keep being reverted, check whether self-healing is enabled and whether the resource is managed by the ArgoCD application.
 
 
 ### HTTP request fails
@@ -1710,7 +1710,7 @@ The project interacts with several systems that require controlled access.
 
 - Review changes before promoting them to important environments.
 - Understand the effect of automated pruning.
-- Protect the branch used by Argo CD.
+- Protect the branch used by ArgoCD.
 - Keep sensitive values out of ordinary deployment manifests.
 - Make rollback procedures explicit and testable.
 
@@ -1809,7 +1809,7 @@ The next improvements I would prioritise are:
 8. **High availability:** Design for node failures and relevant failure domains.
 9. **Data protection:** Implement and test database backup and restore procedures where persistent data is involved.
 10. **Recovery testing:** Practise rolling back to a known-good configuration and image.
-11. **Least privilege:** Reduce the permissions available to Jenkins, Argo CD, and application workloads.
+11. **Least privilege:** Reduce the permissions available to Jenkins, ArgoCD, and application workloads.
 12. **Environment isolation:** Separate staging and production access and configuration.
 
 A platform becomes more mature when it can not only deploy software but also explain its state, recover from expected failures, and make unsafe changes more difficult.
@@ -1828,7 +1828,7 @@ The following table separates the demonstrated project outcomes from optional ex
 | Container image | Docker image publication was part of the workflow |
 | Kubernetes | Spring Boot application managed through a Deployment and Service |
 | Replicas | GitOps configuration declared three replicas |
-| Argo CD | Application managed through the GitOps repository |
+| ArgoCD | Application managed through the GitOps repository |
 | Self-healing | A manual scale-down was corrected back to the Git-defined replica count |
 | Application testing | The tested endpoint returned HTTP 200 |
 | Persistent storage | Documented as a reusable extension; verify separately if it was implemented |
@@ -1852,7 +1852,7 @@ kubectl get pods -o wide
 kubectl get service spring-boot-app-service
 kubectl get endpoints spring-boot-app-service
 
-# Argo CD application
+# ArgoCD application
 kubectl get application spring-boot-app -n argocd
 
 # Render the GitOps manifests
@@ -1912,7 +1912,7 @@ I learned that:
 - Kubernetes Deployments manage desired replica counts, while Services provide stable access to selected Pods.
 - Persistent storage requires deliberate planning around claims, volumes, lifecycle, and recovery.
 - GitOps makes the desired state visible and version-controlled.
-- Argo CD self-healing can correct configuration drift when the desired state and synchronisation policy support it.
+- ArgoCD self-healing can correct configuration drift when the desired state and synchronisation policy support it.
 - Application health must be verified independently of build and deployment status.
 - Three replicas on a local Minikube cluster do not constitute production high availability.
 - Security, observability, backups, and rollback procedures are part of operating a platform.
@@ -1923,7 +1923,7 @@ When an earlier pipeline stage succeeds and a later stage fails, the answer is n
 
 ## Conclusion
 
-This capstone gave me practical experience connecting Jenkins, GitHub, Maven, Docker, Kubernetes, and Argo CD into a repeatable delivery workflow.
+This capstone gave me practical experience connecting Jenkins, GitHub, Maven, Docker, Kubernetes, and ArgoCD into a repeatable delivery workflow.
 
 It also helped me understand why CI/CD and GitOps are complementary. CI/CD automates the process of validating and packaging application changes. GitOps provides a declarative way to manage the desired deployment state and reconcile the running environment with it.
 
